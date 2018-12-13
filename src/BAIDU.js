@@ -6,8 +6,8 @@ import BaiduPush from 'baidu_push';
 import { randomString } from './PushAdapterUtils';
 
 const LOG_PREFIX = 'parse-server-push-adapter BAIDU';
-const BAIDUTimeToLiveMax = 4 * 7 * 24 * 60 * 60; // BAIDU allows a max of 4 weeks
-const BAIDURegistrationTokensMax = 1000;
+const BAIDUMsgExpiresMax = 7 * 24 * 60 * 60; // BAIDU allows a max of 1 week
+const BAIDURegistrationTokensMax = 10000;
 
 export default function BAIDU(args) {
   if (typeof args !== 'object' || !args.senderId || !args.apiKey) {
@@ -30,9 +30,9 @@ BAIDU.BAIDURegistrationTokensMax = BAIDURegistrationTokensMax;
 BAIDU.prototype.send = function(data, devices) {
   let pushId = randomString(10);
   // Make a new array
-  devices=devices.slice(0);
+  devices = devices.slice(0);
   let timestamp = Date.now();
-  // For android, we can only have 1000 recepients per send, so we need to slice devices to
+  // For android, we can only have 10000 recepients per send, so we need to slice devices to
   // chunk if necessary
   let slices = sliceDevices(devices, BAIDU.BAIDURegistrationTokensMax);
   if (slices.length > 1) {
@@ -78,11 +78,7 @@ BAIDU.prototype.send = function(data, devices) {
   if(deviceCount == 1 && baiduPayload.msg != "") {
     baiduPayload['channel_id'] = registrationChannelIds[0];
     baiduPushType = "pushSingle";
-  }/*
-  else if(deviceCount > 1 && baiduPayload.msg != "") {
-    baiduPayload['channel_ids'] = registrationChannelIds.join(","); //JSON.stringify(registrationChannelIds);
-    baiduPushType = "pushBatchDevice";
-  }*/
+  }
   else {
     baiduPushType = "pushAll";
   }
@@ -105,7 +101,7 @@ BAIDU.prototype.send = function(data, devices) {
         request_id,
         response: error || result,
       };
-      if (result && result.response_params && result.response_params.msg_id) {
+      if(result && result.response_params && result.response_params.msg_id) {
         resolution.transmitted = true;
       } else {
         resolution.transmitted = false;
@@ -130,6 +126,17 @@ function generateBAIDUPayload(requestData, pushId, timeStamp, expirationTime) {
     msg: JSON.stringify(requestData.data),
     timestamp: timeStamp
   };
+  if (expirationTime) {
+    // The timeStamp and expiration is in milliseconds but baidu requires in seconds
+    let msgExpires = Math.floor((expirationTime - timeStamp) / 1000);
+    if (msgExpires < 0) {
+      msgExpires = 0;
+    }
+    if (msgExpires >= BAIDUMsgExpiresMax) {
+      msgExpires = BAIDUMsgExpiresMax;
+    }
+    payload.msg_expires = msgExpires;
+  }
   return payload;
 }
 
