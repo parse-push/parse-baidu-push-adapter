@@ -34,3 +34,34 @@ or
 
 VERBOSE_PARSE_SERVER_PUSH_ADAPTER=1
 This will produce a more verbose output for all the push sending attempts
+
+# parse-baidu-push-adapter
+
+This package works seamlessly with parse-server to send push notification using GCM/FCM and Baidu to any android device and also supports APNS
+
+# Getting Started 
+
+npm install @parse-push/parse-baidu-push-adapter
+
+Configure the parse-server to use Baidu push server by setting this config parameter 
+
+Along with these parameters below add pushServer : "baidu"
+
+{
+  "databaseURI": "mongodb://localhost:27017/parse",
+  "cloud": "./persist/cloud/main",
+  "appId": "myAppId",
+  "masterKey": "masterKey",
+  "serverURL": "http://*.*.*.*:****",
+  "usePostgreSQL": false,
+  "filesSubDirectory": "/home/ubuntu/ws/temp",
+  "pushServer" : "baidu", <----- If you intend to use Baidu Push server then you must add this 
+  "push": {
+    "android": {
+    	"senderId": "<senderId>",
+    	"apiKey": "<apiKey>"
+    }
+  }
+}
+
+If you wish to use GCM/FCM then just remove the pushServer config that is all 
